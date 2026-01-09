@@ -1,0 +1,1 @@
+ # Parámetros (range size, símbolo, risk)
