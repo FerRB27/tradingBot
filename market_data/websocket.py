@@ -7,6 +7,9 @@ from indicators.ema import ema
 from indicators.regression import linear_regression
 from indicators.keltner import keltner_channel
 
+from strategy.impulses import detect_impulse
+from strategy.entries import entry_A1
+
 
 RANGE_SIZE = 100
 
@@ -14,6 +17,7 @@ RANGE_SIZE = 100
 def start_trade_stream():
     range_builder = RangeBarBuilder(RANGE_SIZE)
     bars = []
+    slopes = []
 
     def handle_trade(msg):
         if msg["e"] != "trade":
@@ -29,30 +33,33 @@ def start_trade_stream():
 
             ema20 = ema(closes, 20)
             ema80 = ema(closes, 80)
+
             lr = linear_regression(closes, 89)
+            slope = lr[1] if lr else None
+            slopes.append(slope)
+
             kc = keltner_channel(bars)
 
-            print("\n🟦 NUEVO RANGE BAR")
-            print(
-                f"O:{completed_bar['open']} "
-                f"H:{completed_bar['high']} "
-                f"L:{completed_bar['low']} "
-                f"C:{completed_bar['close']}"
+            impulse = None
+            if len(slopes) >= 2:
+                impulse = detect_impulse(slopes[-2], slopes[-1])
+
+            signal = entry_A1(
+                impulse=impulse,
+                price=completed_bar["close"],
+                ema20=ema20,
+                ema80=ema80,
+                keltner=kc
             )
 
-            if ema20 and ema80:
-                print(f"EMA20: {ema20:.2f} | EMA80: {ema80:.2f}")
+            print("\n🟦 RANGE BAR")
+            print(f"O:{completed_bar['open']} C:{completed_bar['close']}")
 
-            if lr:
-                print(f"LR89: {lr[0]:.2f} | Pendiente: {lr[1]:.4f}")
+            if impulse:
+                print(f"IMPULSO: {impulse}")
 
-            if kc:
-                print(
-                    f"Keltner → "
-                    f"Upper: {kc['upper']:.2f} "
-                    f"Basis: {kc['basis']:.2f} "
-                    f"Lower: {kc['lower']:.2f}"
-                )
+            if signal:
+                print(f"🚨 SEÑAL MDC → {signal}")
 
     twm = ThreadedWebsocketManager(
         api_key=API_KEY,
@@ -67,6 +74,6 @@ def start_trade_stream():
         callback=handle_trade
     )
 
-    print("🟢 MDC Bot | Range Bars + Indicadores activos")
+    print("🟢 MDC Bot | Impulsos + A1 activos")
 
     twm.join()
