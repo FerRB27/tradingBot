@@ -22,7 +22,7 @@ EMA_SLOW = 80
 
 # === EJECUCIÓN ===
 EXECUTE_TRADES = False  # True = Ejecutar órdenes reales | False = Solo señales
-TESTNET = True  # True = Red de pruebas | False = Red principal
+TESTNET = False  # True = Red de pruebas | False = Red principal
 
 # === BACKTEST ===
 BACKTEST_LIMIT = 1000  # Cantidad de trades históricos a cargar

@@ -10,7 +10,7 @@ from indicators.regression import linear_regression
 from indicators.keltner import keltner_channel
 
 from strategy.impulses import detect_impulse
-from strategy.entries import A1Strategy
+from strategy.entries import A1Strategy, A2Strategy
 from risk.stop_take import calculate_sl_tp
 from execution.binance_client import BinanceFuturesClient
 
@@ -20,8 +20,9 @@ def start_trade_stream():
     bars = []
     slopes = []
     
-    # Inicializar estrategia A1
+    # Inicializar estrategias A1 y A2
     a1_strategy = A1Strategy()
+    a2_strategy = A2Strategy()
     
     # Inicializar cliente de Binance (si está habilitado)
     binance_client = BinanceFuturesClient(testnet=TESTNET) if EXECUTE_TRADES else None
@@ -62,14 +63,25 @@ def start_trade_stream():
                 impulse = detect_impulse(slopes[-2], slopes[-1])
                 if impulse:
                     a1_strategy.set_impulse(impulse)
+                    a2_strategy.set_impulse(impulse)
 
-            # Evaluar señal A1
-            signal = a1_strategy.evaluate(
+            # Evaluar señales A1 y A2
+            signal_a1 = a1_strategy.evaluate(
                 bar=completed_bar,
                 lr_value=lr_value,
                 lr_slope=lr_slope,
                 keltner=kc
             )
+            
+            signal_a2 = a2_strategy.evaluate(
+                bar=completed_bar,
+                lr_value=lr_value,
+                lr_slope=lr_slope,
+                keltner=kc
+            )
+            
+            # Priorizar A1 sobre A2 (A1 es más fuerte)
+            signal = signal_a1 or signal_a2
 
             # Mostrar información de la barra
             print(f"\n{'='*70}")
@@ -97,13 +109,17 @@ def start_trade_stream():
                 print(f"\n{impulse_emoji} ⚡ IMPULSO DETECTADO: {impulse}")
                 
             if a1_strategy.waiting_pullback:
-                print(f"\n⏳ Esperando retroceso a banda media para: {a1_strategy.waiting_pullback}")
+                print(f"\n⏳ [A1] Esperando retroceso a banda media para: {a1_strategy.waiting_pullback}")
+                
+            if a2_strategy.waiting_pullback:
+                print(f"\n⏳ [A2] Esperando retroceso a banda media para: {a2_strategy.waiting_pullback}")
 
-            # Ejecutar señal A1
+            # Ejecutar señal A1 o A2
             if signal and not has_open_position:
                 signal_emoji = "🟢" if "LONG" in signal else "🔴"
+                signal_type = "A1" if "A1" in signal else "A2"
                 print(f"\n{signal_emoji} {'='*66}")
-                print(f"🚨 SEÑAL A1 DETECTADA: {signal}")
+                print(f"🚨 SEÑAL {signal_type} DETECTADA: {signal}")
                 print(f"{'='*70}")
                 
                 # Calcular SL y TP
@@ -171,11 +187,12 @@ def start_trade_stream():
     network = "🧪 TESTNET" if TESTNET else "⚠️ MAINNET"
     
     print("\n" + "="*70)
-    print("🤖 MDC TRADING BOT - ESTRATEGIA A1")
+    print("🤖 MDC TRADING BOT - ESTRATEGIAS A1 & A2")
     print("="*70)
     print(f"  Símbolo:        {SYMBOL}")
     print(f"  Range Size:     {RANGE_SIZE} puntos")
     print(f"  Riesgo:         {RISK_PERCENTAGE*100}%")
+    print(f"  Estrategias:    A1 (precio en/con LR) & A2 (precio sin LR)")
     print(f"  Modo:           {mode}")
     print(f"  Network:        {network}")
     print("="*70)
