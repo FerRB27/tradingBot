@@ -6,7 +6,7 @@ from indicators.regression import linear_regression
 from indicators.keltner import keltner_channel
 
 from strategy.impulses import detect_impulse
-from strategy.entries import A1Strategy
+from strategy.entries import A1Strategy, A2Strategy, A3Strategy
 from risk.stop_take import calculate_sl_tp
 
 
@@ -15,7 +15,7 @@ RANGE_SIZE = 100
 
 def run_backtest(interval="1m", limit=1000):
     """
-    Ejecuta backtest de estrategia A1
+    Ejecuta backtest de estrategias A1, A2 y A3
     
     Args:
         interval: Intervalo de velas (1m, 5m, 15m, 1h, etc.)
@@ -36,8 +36,10 @@ def run_backtest(interval="1m", limit=1000):
     slopes = []
     closes = []
     
-    # Inicializar estrategia A1
+    # Inicializar estrategias A1, A2 y A3
     a1_strategy = A1Strategy()
+    a2_strategy = A2Strategy()
+    a3_strategy = A3Strategy()
 
     position = None
     entry_price = None
@@ -64,14 +66,32 @@ def run_backtest(interval="1m", limit=1000):
             impulse = detect_impulse(slopes[-2], slopes[-1])
             if impulse:
                 a1_strategy.set_impulse(impulse)
+                a2_strategy.set_impulse(impulse)
+                a3_strategy.set_impulse(impulse)
 
-        # Evaluar señal A1
-        signal = a1_strategy.evaluate(
+        # Evaluar señales A1, A2 y A3 (prioridad A1 > A2 > A3)
+        signal_a1 = a1_strategy.evaluate(
             bar=bar,
             lr_value=lr_value,
             lr_slope=lr_slope,
             keltner=kc
         )
+        
+        signal_a2 = a2_strategy.evaluate(
+            bar=bar,
+            lr_value=lr_value,
+            lr_slope=lr_slope,
+            keltner=kc
+        )
+        
+        signal_a3 = a3_strategy.evaluate(
+            bar=bar,
+            lr_value=lr_value,
+            lr_slope=lr_slope,
+            keltner=kc
+        )
+        
+        signal = signal_a1 or signal_a2 or signal_a3
 
         # --- ENTRADA ---
         if not position and signal:
@@ -94,7 +114,7 @@ def run_backtest(interval="1m", limit=1000):
                 print(f"   SL: {stop_loss:.2f} | TP: {take_profit:.2f}")
 
         # --- GESTIÓN ---
-        if position == "LONG_A1":
+        if position and position.startswith("LONG"):
             if bar["low"] <= stop_loss:
                 results.append(-1)  # Pérdida de 1R
                 print(f"   ❌ Stop Loss alcanzado @ {bar['low']:.2f}")
@@ -104,7 +124,7 @@ def run_backtest(interval="1m", limit=1000):
                 print(f"   ✅ Take Profit alcanzado @ {bar['high']:.2f}")
                 position = None
 
-        if position == "SHORT_A1":
+        if position and position.startswith("SHORT"):
             if bar["high"] >= stop_loss:
                 results.append(-1)  # Pérdida de 1R
                 print(f"   ❌ Stop Loss alcanzado @ {bar['high']:.2f}")

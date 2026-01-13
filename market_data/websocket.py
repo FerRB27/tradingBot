@@ -9,17 +9,25 @@ from market_data.range_builder import RangeBarBuilder
 
 from indicators.regression import linear_regression
 from indicators.keltner import keltner_channel
+from indicators.ema import ema
 
 from strategy.impulses import detect_impulse
 from strategy.entries import A1Strategy, A2Strategy, A3Strategy
 from risk.stop_take import calculate_sl_tp
 from execution.binance_client import BinanceFuturesClient
+from visualization.chart_view import LiveChart
 
 
 def start_trade_stream():
     range_builder = RangeBarBuilder(RANGE_SIZE)
     bars = []
     slopes = []
+    
+    # Listas para almacenar indicadores historicos
+    lr_history = []
+    keltner_history = {'upper': [], 'basis': [], 'lower': []}
+    ema20_history = []
+    ema80_history = []
     
     # Inicializar estrategias A1, A2 y A3
     a1_strategy = A1Strategy()
@@ -31,6 +39,16 @@ def start_trade_stream():
     
     # Variable para evitar múltiples operaciones
     has_open_position = False
+    
+    # Inicializar grafico en tiempo real (DESHABILITADO)
+    chart = None
+    # try:
+    #     chart = LiveChart()
+    #     print("✅ Gráfico en tiempo real inicializado\n")
+    # except Exception as e:
+    #     print(f"⚠️  No se pudo inicializar el gráfico: {e}")
+    #     print("   El bot continuará sin visualización\n")
+    #     chart = None
     
     # Contador de barras
     bar_count = 0
@@ -55,6 +73,19 @@ def start_trade_stream():
             lr_value = lr[0] if lr else None
             lr_slope = lr[1] if lr else None
             slopes.append(lr_slope)
+            lr_history.append(lr_value)
+
+            # Calcular Keltner Channel 52 (3.5)
+            kc = keltner_channel(bars)
+            keltner_history['upper'].append(kc['upper'] if kc else None)
+            keltner_history['basis'].append(kc['basis'] if kc else None)
+            keltner_history['lower'].append(kc['lower'] if kc else None)
+            
+            # Calcular EMAs
+            ema20_val = ema(closes, 20)
+            ema80_val = ema(closes, 80)
+            ema20_history.append(ema20_val)
+            ema80_history.append(ema80_val)
 
             # Calcular Keltner Channel 52 (3.5)
             kc = keltner_channel(bars)
@@ -187,6 +218,39 @@ def start_trade_stream():
                         print(f"    1. Edita config/settings.py")
                         print(f"    2. Cambia EXECUTE_TRADES = True")
                 print(f"{'='*70}\n")
+            
+            # Actualizar grafico en tiempo real
+            if chart and len(bars) > 0:
+                try:
+                    indicators_data = {
+                        'lr_values': lr_history,
+                        'lr_slope': lr_slope if lr_slope else 0,
+                        'keltner_upper': keltner_history['upper'],
+                        'keltner_basis': keltner_history['basis'],
+                        'keltner_lower': keltner_history['lower'],
+                        'ema20': ema20_history,
+                        'ema80': ema80_history
+                    }
+                    
+                    # Preparar datos de señal si existe
+                    signal_data = None
+                    if signal and sl_tp:
+                        signal_type_chart = 'LONG' if 'LONG' in signal else 'SHORT'
+                        strategy_name = 'A1' if 'A1' in signal else 'A2' if 'A2' in signal else 'A3'
+                        
+                        signal_data = {
+                            'type': signal_type_chart,
+                            'price': completed_bar["close"],
+                            'sl': sl_tp['stop_loss'],
+                            'tp': sl_tp['take_profit'],
+                            'strategy': strategy_name
+                        }
+                    
+                    # Actualizar grafico
+                    chart.update(bars, indicators_data, signal_data)
+                    
+                except Exception as e:
+                    print(f"⚠️  Error actualizando gráfico: {e}")
 
     # WebSocket URL según testnet o mainnet
     if TESTNET:
