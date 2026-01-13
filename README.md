@@ -1,10 +1,10 @@
-# 🤖 MDC Trading Bot - Estrategia A1
+# 🤖 MDC Trading Bot - Estrategias A1, A2 & A3
 
 Bot de trading automatizado para Binance Futures basado en la metodología **MDC Trading Academy**.
 
 ## 📋 Características
 
-- ✅ **Estrategia A1** implementada según MDC Trading Academy
+- ✅ **Estrategias A1, A2 y A3** implementadas según MDC Trading Academy
 - ✅ **Range Bars** de 100 puntos
 - ✅ **Indicadores técnicos**: Linear Regression 89, Keltner Channel 52 (3.5)
 - ✅ **Risk Management**: Stop Loss y Take Profit con ratio 2:1
@@ -12,27 +12,21 @@ Bot de trading automatizado para Binance Futures basado en la metodología **MDC
 - ✅ **Trading en tiempo real** vía WebSocket
 - ✅ **Modo DEMO** y modo LIVE
 
-## 🎯 Estrategia A1
+## 🎯 Estrategias MDC
 
-### Condiciones para LONG A1:
-1. ✅ Impulso alcista inmediato (cambio de pendiente LR negativa → positiva)
-2. ✅ Precio en canal superior de Keltner
-3. ✅ Linear Regression con dirección alcista (slope > 0)
-4. ✅ Primera barra de retroceso que toca banda media del Keltner
-5. ✅ Precio debe estar en o sobre la línea de regresión
+### A1 - Más Fuerte 🟢
+**LONG**: Precio en/con LR + LR alcista  
+**SHORT**: Precio en/con LR + LR bajista
 
-**Stop Loss**: Debajo de la banda inferior de Keltner  
-**Take Profit**: 2x la distancia del SL (ratio 2:1)
+### A2 - Alternativa 🟡
+**LONG**: Precio sin tocar LR (debajo) + LR alcista  
+**SHORT**: Precio sin tocar LR (encima) + LR bajista
 
-### Condiciones para SHORT A1:
-1. ✅ Impulso bajista inmediato (cambio de pendiente LR positiva → negativa)
-2. ✅ Precio en canal inferior de Keltner
-3. ✅ Linear Regression con dirección bajista (slope < 0)
-4. ✅ Primera barra de retroceso que toca banda media del Keltner
-5. ✅ Precio debe estar en o debajo de la línea de regresión
+### A3 - LR Plana 🟠
+**LONG**: LR plana + espacio LR-Basis >= 2x riesgo  
+**SHORT**: LR plana + espacio Basis-LR >= 2x riesgo
 
-**Stop Loss**: Encima de la banda superior de Keltner  
-**Take Profit**: 2x la distancia del SL (ratio 2:1)
+Ver [ESTRATEGIAS_A1_A2_A3.md](ESTRATEGIAS_A1_A2_A3.md) para detalles completos.
 
 ## 🚀 Uso
 

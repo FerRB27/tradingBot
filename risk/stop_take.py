@@ -2,19 +2,19 @@
 
 def calculate_sl_tp(entry_price, signal_type, keltner, risk_percentage=0.01):
     """
-    Calcula Stop Loss y Take Profit para señales A1 y A2
+    Calcula Stop Loss y Take Profit para señales A1, A2 y A3
     
-    LONG (A1 y A2):
+    LONG (A1, A2, A3):
     - SL: Debajo de la banda inferior Keltner
     - TP: 2x la distancia del SL (ratio 2:1)
     
-    SHORT (A1 y A2):
+    SHORT (A1, A2, A3):
     - SL: Encima de la banda superior Keltner
     - TP: 2x la distancia del SL (ratio 2:1)
     
     Args:
         entry_price: Precio de entrada
-        signal_type: "LONG_A1", "SHORT_A1", "LONG_A2", "SHORT_A2"
+        signal_type: "LONG_A1", "SHORT_A1", "LONG_A2", "SHORT_A2", "LONG_A3", "SHORT_A3"
         keltner: Dict con 'upper', 'lower', 'basis'
         risk_percentage: % de riesgo por operación (default 1%)
     

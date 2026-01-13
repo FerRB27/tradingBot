@@ -1,6 +1,7 @@
 # Trades en tiempo real (Binance)
-from binance import ThreadedWebsocketManager
-from config.secrets import API_KEY, API_SECRET
+import websocket
+import json
+import threading
 from config.settings import (
     SYMBOL, RANGE_SIZE, RISK_PERCENTAGE, EXECUTE_TRADES, TESTNET
 )
@@ -10,7 +11,7 @@ from indicators.regression import linear_regression
 from indicators.keltner import keltner_channel
 
 from strategy.impulses import detect_impulse
-from strategy.entries import A1Strategy, A2Strategy
+from strategy.entries import A1Strategy, A2Strategy, A3Strategy
 from risk.stop_take import calculate_sl_tp
 from execution.binance_client import BinanceFuturesClient
 
@@ -20,9 +21,10 @@ def start_trade_stream():
     bars = []
     slopes = []
     
-    # Inicializar estrategias A1 y A2
+    # Inicializar estrategias A1, A2 y A3
     a1_strategy = A1Strategy()
     a2_strategy = A2Strategy()
+    a3_strategy = A3Strategy()
     
     # Inicializar cliente de Binance (si está habilitado)
     binance_client = BinanceFuturesClient(testnet=TESTNET) if EXECUTE_TRADES else None
@@ -64,8 +66,9 @@ def start_trade_stream():
                 if impulse:
                     a1_strategy.set_impulse(impulse)
                     a2_strategy.set_impulse(impulse)
+                    a3_strategy.set_impulse(impulse)
 
-            # Evaluar señales A1 y A2
+            # Evaluar señales A1, A2 y A3
             signal_a1 = a1_strategy.evaluate(
                 bar=completed_bar,
                 lr_value=lr_value,
@@ -80,8 +83,15 @@ def start_trade_stream():
                 keltner=kc
             )
             
-            # Priorizar A1 sobre A2 (A1 es más fuerte)
-            signal = signal_a1 or signal_a2
+            signal_a3 = a3_strategy.evaluate(
+                bar=completed_bar,
+                lr_value=lr_value,
+                lr_slope=lr_slope,
+                keltner=kc
+            )
+            
+            # Priorizar A1 > A2 > A3
+            signal = signal_a1 or signal_a2 or signal_a3
 
             # Mostrar información de la barra
             print(f"\n{'='*70}")
@@ -113,11 +123,19 @@ def start_trade_stream():
                 
             if a2_strategy.waiting_pullback:
                 print(f"\n⏳ [A2] Esperando retroceso a banda media para: {a2_strategy.waiting_pullback}")
+                
+            if a3_strategy.waiting_pullback:
+                print(f"\n⏳ [A3] Esperando retroceso a banda media para: {a3_strategy.waiting_pullback}")
 
             # Ejecutar señal A1 o A2
             if signal and not has_open_position:
                 signal_emoji = "🟢" if "LONG" in signal else "🔴"
-                signal_type = "A1" if "A1" in signal else "A2"
+                if "A1" in signal:
+                    signal_type = "A1"
+                elif "A2" in signal:
+                    signal_type = "A2"
+                else:
+                    signal_type = "A3"
                 print(f"\n{signal_emoji} {'='*66}")
                 print(f"🚨 SEÑAL {signal_type} DETECTADA: {signal}")
                 print(f"{'='*70}")
@@ -170,36 +188,59 @@ def start_trade_stream():
                         print(f"    2. Cambia EXECUTE_TRADES = True")
                 print(f"{'='*70}\n")
 
-    twm = ThreadedWebsocketManager(
-        api_key=API_KEY,
-        api_secret=API_SECRET,
-        testnet=TESTNET
+    # WebSocket URL según testnet o mainnet
+    if TESTNET:
+        ws_url = f"wss://testnet.binance.vision/ws/{SYMBOL.lower()}@trade"
+    else:
+        ws_url = f"wss://stream.binance.com:9443/ws/{SYMBOL.lower()}@trade"
+
+    def on_message(ws, message):
+        try:
+            msg = json.loads(message)
+            # Convertir el formato del mensaje al esperado
+            trade_msg = {
+                "e": "trade",
+                "p": msg["p"],  # precio
+                "q": msg["q"],  # cantidad
+                "T": msg["T"]   # timestamp
+            }
+            handle_trade(trade_msg)
+        except Exception as e:
+            print(f"Error procesando mensaje: {e}")
+
+    def on_error(ws, error):
+        print(f"WebSocket error: {error}")
+
+    def on_close(ws, close_status_code, close_msg):
+        print(f"\n⚠️ WebSocket cerrado. Código: {close_status_code}")
+        print("Intentando reconectar en 5 segundos...")
+        threading.Timer(5.0, start_trade_stream).start()
+
+    def on_open(ws):
+        mode = "🔴 LIVE TRADING" if EXECUTE_TRADES else "🟡 DEMO (Solo Señales)"
+        network = "🧪 TESTNET" if TESTNET else "⚠️ MAINNET"
+        
+        print("\n" + "="*70)
+        print("🤖 MDC TRADING BOT - ESTRATEGIAS A1, A2 & A3")
+        print("="*70)
+        print(f"  Símbolo:        {SYMBOL}")
+        print(f"  Range Size:     {RANGE_SIZE} puntos")
+        print(f"  Riesgo:         {RISK_PERCENTAGE*100}%")
+        print(f"  Estrategias:    A1, A2, A3 (MDC Trading Academy)")
+        print(f"  Modo:           {mode}")
+        print(f"  Network:        {network}")
+        print("="*70)
+        print("\n✅ Conectado al WebSocket de Binance")
+        print("📊 Construyendo Range Bars en tiempo real...")
+        print("⏳ Esperando primera Range Bar completa...\n")
+
+    # Crear y ejecutar WebSocket
+    ws = websocket.WebSocketApp(
+        ws_url,
+        on_open=on_open,
+        on_message=on_message,
+        on_error=on_error,
+        on_close=on_close
     )
-
-    twm.start()
-
-    twm.start_trade_socket(
-        symbol=SYMBOL,
-        callback=handle_trade
-    )
-
-    mode = "🔴 LIVE TRADING" if EXECUTE_TRADES else "🟡 DEMO (Solo Señales)"
-    network = "🧪 TESTNET" if TESTNET else "⚠️ MAINNET"
     
-    print("\n" + "="*70)
-    print("🤖 MDC TRADING BOT - ESTRATEGIAS A1 & A2")
-    print("="*70)
-    print(f"  Símbolo:        {SYMBOL}")
-    print(f"  Range Size:     {RANGE_SIZE} puntos")
-    print(f"  Riesgo:         {RISK_PERCENTAGE*100}%")
-    print(f"  Estrategias:    A1 (precio en/con LR) & A2 (precio sin LR)")
-    print(f"  Modo:           {mode}")
-    print(f"  Network:        {network}")
-    print("="*70)
-    print("\n✅ Conectado al WebSocket de Binance")
-    print("📊 Construyendo Range Bars en tiempo real...")
-    print("⏳ Esperando primera Range Bar completa...\n")
-
-    twm.join()
-
-    twm.join()
+    ws.run_forever()
