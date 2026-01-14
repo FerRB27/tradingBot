@@ -358,7 +358,7 @@ if __name__ == "__main__":
     # Configuración
     SYMBOL = 'BTCUSDT'
     INTERVAL = '5m'  # Velas de 5 minutos (más rápido que 1m)
-    DAYS = 7  # Última semana
+    DAYS = 90  # Últimos 3 meses
     RANGE_SIZE = 100  # Range bars de 100 puntos
     INITIAL_BALANCE = 10000
     RISK_PCT = 0.01  # 1% por trade
