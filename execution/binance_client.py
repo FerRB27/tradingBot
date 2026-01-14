@@ -15,10 +15,12 @@ class BinanceFuturesClient:
             self.client.FUTURES_COIN_DATA_URL = 'https://testnet.binancefuture.com'
         
         try:
-            self.client.futures_change_leverage(symbol="BTCUSDT", leverage=10)
+            leverage_response = self.client.futures_change_leverage(symbol="BTCUSDT", leverage=10)
+            print(f"✅ Leverage establecido: 10x")
         except Exception as e:
             print(f"⚠️ No se pudo establecer leverage: {e}")
-            print("   Continuando de todas formas...")
+            print("   Verifica que tu API Key tenga permisos de 'Enable Futures'")
+            print("   El bot continuará pero revisa los permisos en Binance...")
         
     def place_order_a1(self, signal, entry_price, stop_loss, take_profit, quantity):
         """
@@ -81,8 +83,21 @@ class BinanceFuturesClient:
         """Obtiene el balance disponible en Futures"""
         try:
             account = self.client.futures_account()
-            balance = float(account['availableBalance'])
-            return balance
+            # El balance está en la lista de assets, buscar USDT
+            for asset in account.get('assets', []):
+                if asset['asset'] == 'USDT':
+                    balance = float(asset['availableBalance'])
+                    print(f"💰 Balance disponible: ${balance:.2f} USDT")
+                    return balance
+            
+            # Si no se encuentra en assets, intentar directamente
+            if 'availableBalance' in account:
+                balance = float(account['availableBalance'])
+                print(f"💰 Balance disponible: ${balance:.2f} USDT")
+                return balance
+            
+            print(f"⚠️ No se pudo encontrar balance USDT")
+            return None
         except Exception as e:
             print(f"❌ Error al obtener balance: {e}")
             return None
