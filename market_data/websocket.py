@@ -25,7 +25,7 @@ def start_trade_stream():
     ema20_history = []
     ema80_history = []
     
-    # Inicializar sistema integrado de señales (A1, A2, A3, Trade 80, Fases, FOBO)
+    # Inicializar sistema integrado de señales (A1, A2, A3, Trade 80, CBOT, Trade 20, FOBO)
     signal_generator = TradingSignalGenerator(tick_size=1.0)
     
     # Inicializar cliente de Binance (si está habilitado)
@@ -70,13 +70,14 @@ def start_trade_stream():
             ema20_history.append(ema20_val)
             ema80_history.append(ema80_val)
 
-            # Generar señal usando sistema integrado (A1, A2, A3, Trade 80, Fases, FOBO)
+            # Generar señal usando sistema integrado (A1, A2, A3, Trade 80, CBOT, Trade 20, FOBO)
             signal = signal_generator.generate_signal(
                 bar=completed_bar,
                 lr_value=lr_value,
                 lr_slope=lr_slope,
                 keltner=kc,
-                ema80_value=ema80_val  # ← Incluir EMA 80 para Trade 80
+                ema80_value=ema80_val,  # Para Trade 80
+                ema20_value=ema20_val   # Para Trade 20
             )
             
             # Obtener contexto del mercado (fase actual)
@@ -103,6 +104,9 @@ def start_trade_stream():
                 print(f"  KC Basis:  ${kc['basis']:.2f}")
                 print(f"  KC Lower:  ${kc['lower']:.2f}")
             
+            if ema20_val:
+                print(f"  EMA 20:    ${ema20_val:.2f}")
+            
             if ema80_val:
                 print(f"  EMA 80:    ${ema80_val:.2f}")
             
@@ -121,12 +125,24 @@ def start_trade_stream():
                 if phase_info['range_established']:
                     print(f"  Rango: ${phase_info['range_low']:.2f} - ${phase_info['range_high']:.2f}")
             
-            # Mostrar si hay setup en espera
+            # Mostrar información de anclas
+            anchor_info = market_context['anchor_info']
+            resistance_area = market_context['resistance_area']
+            support_area = market_context['support_area']
+            
+            if resistance_area or support_area:
+                print(f"\n⚓ Anclas detectadas:")
+                if resistance_area:
+                    print(f"  📍 Resistencia: {resistance_area['anchor_count']} anclas @ ${resistance_area['highest_pivot']:.2f}")
+                if support_area:
+                    print(f"  📍 Soporte: {support_area['anchor_count']} anclas @ ${support_area['lowest_pivot']:.2f}")
+            
+            # Mostrar si hay setup FOBO en espera
             fobo_info = market_context['fobo_info']
             if fobo_info['waiting_confirmation']:
                 print(f"\n⚠️ FOBO potencial en: {fobo_info['potential_fobo']}")
 
-            # Ejecutar señal (A1, A2, A3, Trade 80, FOBO)
+            # Ejecutar señal (A1, A2, A3, Trade 80, CBOT, Trade 20, FOBO)
             if signal and not has_open_position:
                 signal_type = signal['type']
                 signal_direction = signal['direction']
@@ -140,6 +156,21 @@ def start_trade_stream():
                 # Info adicional para Trade 80
                 if signal_type == "TRADE_80" and 'ema80_value' in signal:
                     print(f"  EMA 80: ${signal['ema80_value']:.2f}")
+                
+                # Info adicional para CBOT
+                if 'cbot_info' in signal:
+                    cbot = signal['cbot_info']
+                    print(f"  Anclas: {cbot['anchor_count']}")
+                    print(f"  Pivote: ${cbot['pivot_level']:.2f}")
+                    print(f"  Breakout: ${cbot['breakout_level']:.2f}")
+                
+                # Info adicional para Trade 20
+                if 'trade20_info' in signal:
+                    t20 = signal['trade20_info']
+                    print(f"  EMA 20: ${t20['ema20_value']:.2f}")
+                    print(f"  Distancia KC: {t20['keltner_distance']:.1f} ticks")
+                    cbot_prev = t20['cbot_info']
+                    print(f"  CBOT previo: {cbot_prev['direction']} @ ${cbot_prev['breakout_price']:.2f}")
                 
                 # Info adicional para FOBO
                 if 'fobo_info' in signal:
@@ -230,8 +261,8 @@ def start_trade_stream():
         print(f"  Símbolo:        {SYMBOL}")
         print(f"  Range Size:     {RANGE_SIZE} puntos")
         print(f"  Riesgo:         {RISK_PERCENTAGE*100}%")
-        print(f"  Estrategias:    A1, A2, A3, Trade 80, FOBO")
-        print(f"  Detección:      4 Fases del Mercado MDC")
+        print(f"  Estrategias:    A1, A2, A3, Trade 80, CBOT, Trade 20, FOBO")
+        print(f"  Detección:      4 Fases del Mercado MDC + Anclas")
         print(f"  Modo:           {mode}")
         print(f"  Network:        {network}")
         print("="*70)
