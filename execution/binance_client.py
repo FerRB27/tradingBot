@@ -5,8 +5,20 @@ from config.secrets import API_KEY, API_SECRET
 
 class BinanceFuturesClient:
     def __init__(self, testnet=True):
-        self.client = Client(API_KEY, API_SECRET, testnet=testnet)
-        self.client.futures_change_leverage(symbol="BTCUSDT", leverage=10)
+        self.client = Client(API_KEY, API_SECRET)
+        
+        if testnet:
+            # Futures Testnet endpoints
+            self.client.FUTURES_URL = 'https://testnet.binancefuture.com'
+            self.client.FUTURES_DATA_URL = 'https://testnet.binancefuture.com'
+            self.client.FUTURES_COIN_URL = 'https://testnet.binancefuture.com'
+            self.client.FUTURES_COIN_DATA_URL = 'https://testnet.binancefuture.com'
+        
+        try:
+            self.client.futures_change_leverage(symbol="BTCUSDT", leverage=10)
+        except Exception as e:
+            print(f"⚠️ No se pudo establecer leverage: {e}")
+            print("   Continuando de todas formas...")
         
     def place_order_a1(self, signal, entry_price, stop_loss, take_profit, quantity):
         """

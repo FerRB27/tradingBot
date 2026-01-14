@@ -225,9 +225,9 @@ def start_trade_stream():
 
     # WebSocket URL según testnet o mainnet
     if TESTNET:
-        ws_url = f"wss://testnet.binance.vision/ws/{SYMBOL.lower()}@trade"
+        ws_url = f"wss://stream.binancefuture.com/ws/{SYMBOL.lower()}@trade"
     else:
-        ws_url = f"wss://stream.binance.com:9443/ws/{SYMBOL.lower()}@trade"
+        ws_url = f"wss://fstream.binance.com/ws/{SYMBOL.lower()}@trade"
 
     def on_message(ws, message):
         try:
