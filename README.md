@@ -31,11 +31,17 @@ Bot de trading automatizado para Binance Futures basado en la metodología **MDC
 **SHORT**: LR plana + espacio Basis-LR >= 2x riesgo  
 **Fases apropiadas**: Fase 3 (Lateralización) solamente
 
+### Trade 80 - Desarrollo de Tendencia 📈 (NUEVO)
+**LONG**: EMA80 debajo KC Basis + espacio > 3 ticks + precio toca EMA80  
+**SHORT**: EMA80 sobre KC Basis + espacio > 3 ticks + precio toca EMA80  
+**Fases apropiadas**: Fase 1 (Tendencial), Fase 4 (Transición)
+
 ### FOBO - Rompimientos Fallidos ⚠️ (NUEVO)
 Detecta rompimientos falsos en rangos establecidos con 80% probabilidad de reversión según MDC.
 **Fases apropiadas**: Fase 3 (Lateralización) solamente
 
-Ver [ESTRATEGIAS_A1_A2_A3.md](ESTRATEGIAS_A1_A2_A3.md) para detalles completos.
+Ver [ESTRATEGIAS_A1_A2_A3.md](ESTRATEGIAS_A1_A2_A3.md) para detalles completos de A1/A2/A3.  
+Ver [TRADE_80.md](TRADE_80.md) para detalles completos del Trade 80.
 
 ## 🔄 Las 4 Fases del Mercado MDC (NUEVO)
 
@@ -156,6 +162,7 @@ demo_phases.py             # Demo del sistema de fases (NUEVO) ⭐
 │   ├── websocket.py          # Conexión WebSocket con Binance
 │   └── range_builder.py      # Construcción de Range Bars
 ├── indicators/
+│   ├── trade80.py            # Lógica de Trade 80 (NUEVO) ⭐
 │   ├── regression.py         # Linear Regression 89
 │   ├── keltner.py            # Keltner Channel 52 (3.5)
 │   └── ema.py                # EMAs 20 y 80

@@ -287,7 +287,7 @@ class MarketPhaseDetector:
         Determina si la fase actual es adecuada para un tipo de entrada
         
         Args:
-            entry_type: Tipo de entrada ("A1", "A2", "A3", "FOBO_REVERSAL", etc.)
+            entry_type: Tipo de entrada ("A1", "A2", "A3", "TRADE_80", "FOBO_REVERSAL", etc.)
             
         Returns:
             bool: True si la fase es adecuada para ese tipo de entrada
@@ -296,6 +296,7 @@ class MarketPhaseDetector:
             "A1": ["PHASE_2", "PHASE_4"],  # Impulsos fuertes con retroceso
             "A2": ["PHASE_2", "PHASE_4"],  # Similar a A1 pero menos restrictivo
             "A3": ["PHASE_3"],              # Requiere lateralización (LR plana)
+            "TRADE_80": ["PHASE_1", "PHASE_4"],  # Tendencial - desarrollo de tendencia
             "FOBO_REVERSAL": ["PHASE_3"],   # Rompimientos fallidos en rango
             "TREND_CONTINUATION": ["PHASE_1"], # Continuación de tendencia
         }

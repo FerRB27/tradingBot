@@ -2,6 +2,7 @@
 from .market_phases import MarketPhaseDetector
 from .fobo_detector import FOBODetector
 from .entries import A1Strategy, A2Strategy, A3Strategy
+from .trade80 import Trade80Strategy
 from .impulses import detect_impulse
 
 
@@ -10,10 +11,11 @@ class TradingSignalGenerator:
     Generador de señales de trading que integra:
     - Detección de las 4 fases del mercado MDC
     - Estrategias A1, A2, A3
+    - Trade 80 (entrada en tendencia con EMA 80)
     - Detección de FOBOs (rompimientos fallidos)
     """
     
-    def __init__(self):
+    def __init__(self, tick_size=1.0):
         # Detectores de mercado
         self.phase_detector = MarketPhaseDetector(
             slope_threshold=1.0,
@@ -28,11 +30,13 @@ class TradingSignalGenerator:
         self.a1_strategy = A1Strategy()
         self.a2_strategy = A2Strategy()
         self.a3_strategy = A3Strategy()
+        self.trade80_strategy = Trade80Strategy(tick_size=tick_size, min_ticks=3)
         
         # Tracking
         self.previous_lr_slope = None
+        self.previous_ema80 = None
     
-    def generate_signal(self, bar, lr_value, lr_slope, keltner):
+    def generate_signal(self, bar, lr_value, lr_slope, keltner, ema80_value=None):
         """
         Genera señales de trading considerando fase del mercado
         
@@ -41,12 +45,18 @@ class TradingSignalGenerator:
             lr_value: Valor de Linear Regression
             lr_slope: Pendiente de LR
             keltner: Bandas Keltner (dict con upper, basis, lower)
+            ema80_value: Valor de EMA 80 (opcional, para Trade 80)
             
         Returns:
             dict: Señal completa con tipo, dirección, fase, etc.
         """
         if not lr_value or not lr_slope or not keltner:
             return None
+        
+        # Calcular pendiente de EMA 80 si está disponible
+        ema80_slope = None
+        if ema80_value and self.previous_ema80:
+            ema80_slope = ema80_value - self.previous_ema80
         
         # 1. Detectar impulso
         impulse = detect_impulse(self.previous_lr_slope, lr_slope)
@@ -77,7 +87,26 @@ class TradingSignalGenerator:
                 fobo_info=fobo_signal
             )
         
-        # 5. Evaluar estrategias A1, A2, A3 según fase apropiada
+        # 5. Evaluar Trade 80 (Fase 1 y Fase 4 - tendencial)
+        if ema80_value and self.phase_detector.is_suitable_for_entries("TRADE_80"):
+            signal_trade80 = self.trade80_strategy.evaluate(
+                bar, ema80_value, ema80_slope, lr_value, lr_slope, keltner
+            )
+            if signal_trade80:
+                direction = "LONG" if "LONG" in signal_trade80 else "SHORT"
+                # Actualizar tracking de EMA80
+                self.previous_ema80 = ema80_value
+                return self._build_signal(
+                    signal_type="TRADE_80",
+                    direction=direction,
+                    entry=bar["close"],
+                    phase=current_phase,
+                    keltner=keltner,
+                    lr_value=lr_value,
+                    ema80_value=ema80_value
+                )
+        
+        # 6. Evaluar estrategias A1, A2, A3 según fase apropiada
         
         # A1 y A2: Mejor en Fase 2 (cambio de ritmo) y Fase 4 (transición)
         if self.phase_detector.is_suitable_for_entries("A1"):
@@ -123,9 +152,13 @@ class TradingSignalGenerator:
         # Actualizar slope previo
         self.previous_lr_slope = lr_slope
         
+        # Actualizar EMA80 previo
+        if ema80_value:
+            self.previous_ema80 = ema80_value
+        
         return None
     
-    def _build_signal(self, signal_type, direction, entry, phase, keltner, lr_value, fobo_info=None):
+    def _build_signal(self, signal_type, direction, entry, phase, keltner, lr_value, fobo_info=None, ema80_value=None):
         """
         Construye el objeto de señal completo
         """
@@ -157,6 +190,10 @@ class TradingSignalGenerator:
         # Añadir info adicional si es FOBO
         if fobo_info:
             signal["fobo_info"] = fobo_info
+        
+        # Añadir info adicional si es Trade 80
+        if ema80_value:
+            signal["ema80_value"] = ema80_value
         
         return signal
     
