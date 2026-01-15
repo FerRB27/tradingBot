@@ -9,6 +9,6 @@
 
 #-------------------------------------------------------------------------------------#
 #para cuenta live.
-API_KEY = "GSkQNFF6RzI3V4mH2wzOAPn2dnvZNyZGgPHQBVdVVZ2cCLv06WboxmNj3grc64y8"
-API_SECRET = "CobjrZtILfSVXqoK8HXboUBY5QCkjcDzP40f1sGgBdutM28t4MNv4HOFRIqIwA5y"
+API_KEY = "fr3Zy6WObGdGFb1PVKuNakgucL4WE16jzSA4Lt9aeUUL8srE96WNCcgmN2JbdSYy"
+API_SECRET = "ZzcNgmdWnPreYX4BCF9S5ipGE1Wwd84kupfr87Yhq8DEAP4lCnaJSYjRDvv36GWz"
 #-------------------------------------------------------------------------------------#
