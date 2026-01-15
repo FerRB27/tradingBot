@@ -2,6 +2,8 @@
 import websocket
 import json
 import threading
+import logging
+from datetime import datetime
 from config.settings import (
     SYMBOL, RANGE_SIZE, RISK_PERCENTAGE, EXECUTE_TRADES, TESTNET
 )
@@ -13,6 +15,27 @@ from indicators.ema import ema
 
 from strategy.signals import TradingSignalGenerator
 from execution.binance_client import BinanceFuturesClient
+
+# Configurar sistema de logs
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+# Logger para señales de trading
+signal_logger = logging.getLogger('signals')
+signal_handler = logging.FileHandler('logs/trading_signals.log', encoding='utf-8')
+signal_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s', '%Y-%m-%d %H:%M:%S'))
+signal_logger.addHandler(signal_handler)
+signal_logger.setLevel(logging.INFO)
+
+# Logger para errores
+error_logger = logging.getLogger('errors')
+error_handler = logging.FileHandler('logs/errors.log', encoding='utf-8')
+error_handler.setFormatter(logging.Formatter('%(asctime)s - ERROR - %(message)s', '%Y-%m-%d %H:%M:%S'))
+error_logger.addHandler(error_handler)
+error_logger.setLevel(logging.ERROR)
 
 
 def start_trade_stream():
@@ -148,6 +171,9 @@ def start_trade_stream():
                 signal_direction = signal['direction']
                 signal_emoji = "🟢" if signal_direction == "LONG" else "🔴"
                 
+                # Log de señal detectada
+                signal_logger.info(f"SEÑAL DETECTADA: {signal_type} {signal_direction} | Entry: ${signal['entry']:.2f} | SL: ${signal['stop_loss']:.2f} | TP: ${signal['take_profit']:.2f} | R:R 1:{signal['ratio']:.0f}")
+                
                 print(f"\n{signal_emoji} {'='*66}")
                 print(f"🚨 SEÑAL {signal_type} {signal_direction} DETECTADA!")
                 print(f"{'='*70}")
@@ -215,6 +241,7 @@ def start_trade_stream():
                         
                         if order:
                             has_open_position = True
+                            signal_logger.info(f"ORDEN EJECUTADA: {signal['strategy']} {signal_direction} | Quantity: {quantity} BTC | Balance: ${balance:.2f}")
                             print(f"\n✅ ¡Orden ejecutada exitosamente!")
                 else:
                     print(f"\n⚠️  MODO DEMO - Señal detectada pero NO se ejecutó")
@@ -241,12 +268,15 @@ def start_trade_stream():
             }
             handle_trade(trade_msg)
         except Exception as e:
+            error_logger.error(f"Error procesando mensaje WebSocket: {str(e)}")
             print(f"Error procesando mensaje: {e}")
 
     def on_error(ws, error):
+        error_logger.error(f"WebSocket error: {str(error)}")
         print(f"WebSocket error: {error}")
 
     def on_close(ws, close_status_code, close_msg):
+        error_logger.warning(f"WebSocket cerrado - Código: {close_status_code} - Mensaje: {close_msg}")
         print(f"\n⚠️ WebSocket cerrado. Código: {close_status_code}")
         print("Intentando reconectar en 5 segundos...")
         threading.Timer(5.0, start_trade_stream).start()

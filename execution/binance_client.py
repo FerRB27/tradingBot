@@ -102,6 +102,62 @@ class BinanceFuturesClient:
             print(f"❌ Error al obtener balance: {e}")
             return None
     
+    def place_market_order(self, side, quantity, stop_loss, take_profit):
+        """
+        Coloca una orden de mercado con SL y TP
+        
+        Args:
+            side: "LONG" o "SHORT"
+            quantity: Cantidad a operar
+            stop_loss: Precio del stop loss
+            take_profit: Precio del take profit
+        """
+        try:
+            order_side = "BUY" if side == "LONG" else "SELL"
+            
+            # Orden de entrada (Market)
+            entry_order = self.client.futures_create_order(
+                symbol="BTCUSDT",
+                side=order_side,
+                type="MARKET",
+                quantity=quantity
+            )
+            
+            print(f"✅ Orden de entrada ejecutada: {order_side} {quantity} BTCUSDT @ market")
+            
+            # Stop Loss
+            sl_side = "SELL" if side == "LONG" else "BUY"
+            sl_order = self.client.futures_create_order(
+                symbol="BTCUSDT",
+                side=sl_side,
+                type="STOP_MARKET",
+                stopPrice=stop_loss,
+                closePosition=True
+            )
+            
+            print(f"✅ Stop Loss colocado: ${stop_loss:.2f}")
+            
+            # Take Profit
+            tp_order = self.client.futures_create_order(
+                symbol="BTCUSDT",
+                side=sl_side,
+                type="TAKE_PROFIT_MARKET",
+                stopPrice=take_profit,
+                closePosition=True
+            )
+            
+            print(f"✅ Take Profit colocado: ${take_profit:.2f}")
+            
+            return {
+                "entry": entry_order,
+                "stop_loss": sl_order,
+                "take_profit": tp_order
+            }
+            
+        except Exception as e:
+            print(f"❌ Error al ejecutar orden: {e}")
+            return None
+    
     def calculate_position_size(self, balance, risk_percentage, risk_distance):
         """
         Calcula el tamaño de posición basado en el riesgo
