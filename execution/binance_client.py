@@ -124,29 +124,62 @@ class BinanceFuturesClient:
             )
             
             print(f"✅ Orden de entrada ejecutada: {order_side} {quantity} BTCUSDT @ market")
+            print(f"   Order ID: {entry_order.get('orderId', 'N/A')}")
             
-            # Stop Loss
+            # Stop Loss (usando closePosition=True para cerrar toda la posición)
             sl_side = "SELL" if side == "LONG" else "BUY"
-            sl_order = self.client.futures_create_order(
-                symbol="BTCUSDT",
-                side=sl_side,
-                type="STOP_MARKET",
-                stopPrice=stop_loss,
-                closePosition=True
-            )
-            
-            print(f"✅ Stop Loss colocado: ${stop_loss:.2f}")
+            try:
+                sl_order = self.client.futures_create_order(
+                    symbol="BTCUSDT",
+                    side=sl_side,
+                    type="STOP_MARKET",
+                    stopPrice=stop_loss,
+                    closePosition=True
+                )
+                print(f"✅ Stop Loss colocado: ${stop_loss:.2f}")
+                print(f"   Order ID: {sl_order.get('orderId', 'N/A')}")
+            except Exception as sl_error:
+                print(f"❌ Error al colocar Stop Loss: {sl_error}")
+                # Intentar con cantidad específica en lugar de closePosition
+                try:
+                    sl_order = self.client.futures_create_order(
+                        symbol="BTCUSDT",
+                        side=sl_side,
+                        type="STOP_MARKET",
+                        stopPrice=stop_loss,
+                        quantity=quantity
+                    )
+                    print(f"✅ Stop Loss colocado (con quantity): ${stop_loss:.2f}")
+                except Exception as sl_error2:
+                    print(f"❌ Error crítico en Stop Loss: {sl_error2}")
+                    sl_order = None
             
             # Take Profit
-            tp_order = self.client.futures_create_order(
-                symbol="BTCUSDT",
-                side=sl_side,
-                type="TAKE_PROFIT_MARKET",
-                stopPrice=take_profit,
-                closePosition=True
-            )
-            
-            print(f"✅ Take Profit colocado: ${take_profit:.2f}")
+            try:
+                tp_order = self.client.futures_create_order(
+                    symbol="BTCUSDT",
+                    side=sl_side,
+                    type="TAKE_PROFIT_MARKET",
+                    stopPrice=take_profit,
+                    closePosition=True
+                )
+                print(f"✅ Take Profit colocado: ${take_profit:.2f}")
+                print(f"   Order ID: {tp_order.get('orderId', 'N/A')}")
+            except Exception as tp_error:
+                print(f"❌ Error al colocar Take Profit: {tp_error}")
+                # Intentar con cantidad específica
+                try:
+                    tp_order = self.client.futures_create_order(
+                        symbol="BTCUSDT",
+                        side=sl_side,
+                        type="TAKE_PROFIT_MARKET",
+                        stopPrice=take_profit,
+                        quantity=quantity
+                    )
+                    print(f"✅ Take Profit colocado (con quantity): ${take_profit:.2f}")
+                except Exception as tp_error2:
+                    print(f"❌ Error crítico en Take Profit: {tp_error2}")
+                    tp_order = None
             
             return {
                 "entry": entry_order,
@@ -156,6 +189,8 @@ class BinanceFuturesClient:
             
         except Exception as e:
             print(f"❌ Error al ejecutar orden: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def calculate_position_size(self, balance, risk_percentage, risk_distance):
