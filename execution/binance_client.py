@@ -115,6 +115,11 @@ class BinanceFuturesClient:
         try:
             order_side = "BUY" if side == "LONG" else "SELL"
             
+            # Redondear precios a 1 decimal (precisión de BTCUSDT Futures)
+            stop_loss = round(float(stop_loss), 1)
+            take_profit = round(float(take_profit), 1)
+            quantity = round(float(quantity), 3)
+            
             # Orden de entrada (Market)
             entry_order = self.client.futures_create_order(
                 symbol="BTCUSDT",
@@ -136,7 +141,7 @@ class BinanceFuturesClient:
                     stopPrice=stop_loss,
                     closePosition=True
                 )
-                print(f"✅ Stop Loss colocado: ${stop_loss:.2f}")
+                print(f"✅ Stop Loss colocado: ${stop_loss:.1f}")
                 print(f"   Order ID: {sl_order.get('orderId', 'N/A')}")
             except Exception as sl_error:
                 print(f"❌ Error al colocar Stop Loss: {sl_error}")
@@ -149,7 +154,7 @@ class BinanceFuturesClient:
                         stopPrice=stop_loss,
                         quantity=quantity
                     )
-                    print(f"✅ Stop Loss colocado (con quantity): ${stop_loss:.2f}")
+                    print(f"✅ Stop Loss colocado (con quantity): ${stop_loss:.1f}")
                 except Exception as sl_error2:
                     print(f"❌ Error crítico en Stop Loss: {sl_error2}")
                     sl_order = None
@@ -163,7 +168,7 @@ class BinanceFuturesClient:
                     stopPrice=take_profit,
                     closePosition=True
                 )
-                print(f"✅ Take Profit colocado: ${take_profit:.2f}")
+                print(f"✅ Take Profit colocado: ${take_profit:.1f}")
                 print(f"   Order ID: {tp_order.get('orderId', 'N/A')}")
             except Exception as tp_error:
                 print(f"❌ Error al colocar Take Profit: {tp_error}")
@@ -176,7 +181,7 @@ class BinanceFuturesClient:
                         stopPrice=take_profit,
                         quantity=quantity
                     )
-                    print(f"✅ Take Profit colocado (con quantity): ${take_profit:.2f}")
+                    print(f"✅ Take Profit colocado (con quantity): ${take_profit:.1f}")
                 except Exception as tp_error2:
                     print(f"❌ Error crítico en Take Profit: {tp_error2}")
                     tp_order = None

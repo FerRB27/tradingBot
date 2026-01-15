@@ -1,2 +1,4 @@
 2026-01-14 21:21:41 - ERROR - WebSocket error: 
 2026-01-15 09:06:12 - ERROR - WebSocket error: 
+2026-01-15 10:01:13 - ERROR - Error procesando mensaje WebSocket: 'strategy'
+2026-01-15 10:07:21 - ERROR - WebSocket error: [WinError 10054] Se ha forzado la interrupción de una conexión existente por el host remoto
