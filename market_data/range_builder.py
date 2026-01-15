@@ -7,7 +7,7 @@ class RangeBarBuilder:
 
     def process_trade(self, price):
         if price <= 0:
-            print(f"⚠️ WARNING: Precio inválido recibido: {price}")
+            # Silenciosamente ignorar precios inválidos (mensajes de control del WebSocket)
             return None
             
         if self.current_bar is None:
