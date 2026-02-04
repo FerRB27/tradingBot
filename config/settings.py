@@ -1,28 +1,22 @@
-# Parámetros de configuración MDC Bot
+# Parámetros de configuración Bot de Scalping con OrderBlocks
 
 # === TRADING ===
 SYMBOL = "BTCUSDT"
-RANGE_SIZE = 100  # Tamaño de las Range Bars
+TIMEFRAME = "5m"  # Temporalidad de las velas japonesas
 
 # === RIESGO ===
 RISK_PERCENTAGE = 0.01  # 1% de riesgo por operación
 LEVERAGE = 10  # Apalancamiento en Futures
 
 # === INDICADORES ===
-# Linear Regression
-LR_PERIOD = 89
+# (Solo OrderBlocks - otros indicadores removidos)
 
-# Keltner Channel
-KC_PERIOD = 52
-KC_MULTIPLIER = 3.5
-
-# EMAs (para análisis adicional si se requiere)
-EMA_FAST = 20
-EMA_SLOW = 80
+# === ORDER BLOCKS ===
+DETECT_ORDER_BLOCKS = True  # Detección de OrderBlocks habilitada
 
 # === EJECUCIÓN ===
-EXECUTE_TRADES = True  # True = Ejecutar órdenes reales | False = Solo señales
+EXECUTE_TRADES = False  # True = Ejecutar órdenes reales | False = Solo señales
 TESTNET = False  # True = Red de pruebas | False = Red principal
 
 # === BACKTEST ===
-BACKTEST_LIMIT = 1000  # Cantidad de trades históricos a cargar
+BACKTEST_LIMIT = 500  # Cantidad de velas a cargar para backtesting

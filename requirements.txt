@@ -1,0 +1,13 @@
+# Dependencias del Bot de Trading OrderBlocks
+
+# WebSocket para conexión a Binance
+websocket-client>=1.6.0
+
+# Cliente de Binance (para futuras ejecuciones de trades)
+python-binance>=1.0.17
+
+# Otras dependencias estándar (incluidas en Python)
+# - datetime
+# - json
+# - logging
+# - os

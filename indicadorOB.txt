@@ -1,0 +1,90 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © cma
+
+//@version=6
+indicator("Bullish & Bearish OB", overlay=true)
+
+// --- Current candle ---
+var float high_current = na
+var float low_current  = na
+
+// --- Previous candle ---
+var float high_previous = na
+var float low_previous  = na
+
+// --- Two candles ago ---
+var float high_two_ago = na
+var float low_two_ago  = na
+
+// Assign values
+high_current := high
+low_current  := low
+
+high_previous := high[1]
+low_previous  := low[1]
+
+high_two_ago := high[2]
+low_two_ago  := low[2]
+
+// --- Compare: is the high from two candles ago lower than the current low? ---
+is_bullish_order_block = high_two_ago < low_current
+is_bearish_order_block = low_two_ago > high_current
+
+// --- Arrays to store order block data ---
+var int[] ob_positions = array.new_int()
+var float[] ob_highs = array.new_float()
+var float[] ob_lows = array.new_float()
+var float[] ob_opens = array.new_float()
+var float[] ob_closes = array.new_float()
+var float[] ob_middles = array.new_float()
+var string[] ob_types = array.new_string()  // "bullish" or "bearish"
+
+
+offset_label = input.float(1, 'Offset Label')
+
+// --- Bullish Order Block ---
+if is_bullish_order_block
+    bar_pos = bar_index - 2
+    ob_high = high[2]
+    ob_low = low[2]
+    ob_open = open[2]
+    ob_close = close[2]
+    ob_middle = math.abs(ob_high - ob_low) / 2
+    ob_range = math.abs(ob_high - ob_low)
+
+    // store values
+    array.push(ob_positions, bar_pos)
+    array.push(ob_highs, ob_high)
+    array.push(ob_lows, ob_low)
+    array.push(ob_opens, ob_open)
+    array.push(ob_closes, ob_close)
+    array.push(ob_middles, ob_middle)
+    array.push(ob_types, "bullish")
+
+    // draw a label above the candle
+    label.new(bar_pos, ob_low - offset_label, "OB", style=label.style_label_up, color=color.new(#007a3f, 0), textcolor=color.white, size=size.normal)
+
+if is_bearish_order_block
+    bar_pos = bar_index - 2
+    ob_high = high[2]
+    ob_low = low[2]
+    ob_open = open[2]
+    ob_close = close[2]
+    ob_middle = math.abs(ob_high - ob_low) / 2
+    ob_range = math.abs(ob_high - ob_low)
+
+    // store values
+    array.push(ob_positions, bar_pos)
+    array.push(ob_highs, ob_high)
+    array.push(ob_lows, ob_low)
+    array.push(ob_opens, ob_open)
+    array.push(ob_closes, ob_close)
+    array.push(ob_middles, ob_middle)
+    array.push(ob_types, "bearish")
+
+    // Draw above the candle two bars ago
+    label.new(bar_pos, ob_high + offset_label, "OB", style=label.style_label_down, color=color.new(#a80000, 0), textcolor=color.white, size=size.normal)
+
+
+// Optional: visualize or debug
+//plotshape(is_order_block, title="Order Block Detected", style=shape.triangleup, color=color.new(color.green, 0), size=size.small, location=location.abovebar)

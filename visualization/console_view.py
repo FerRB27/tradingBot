@@ -1,1 +1,0 @@
-# Ver estado del bot
